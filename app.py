@@ -2,9 +2,6 @@ import streamlit as st
 import pandas as pd
 from PIL import Image, ImageDraw, ImageFont
 import io
-import streamlit_authenticator as stauth
-import yaml
-from yaml.loader import SafeLoader
 
 # --- 1. KONFIGURATION ---
 st.set_page_config(
@@ -14,54 +11,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# --- 2. AUTHENTIFIZIERUNG (DER TÜRSTEHER) ---
-
-# Hier definieren wir die User (Für das MVP direkt im Code)
-# In Zukunft lagern wir das in eine sichere Datei aus.
-auth_data = {
-    'credentials': {
-        'usernames': {
-            'admin': {
-                'name': 'Admin User',
-                # Das Passwort ist "123" (aber verschlüsselt/gehasht)
-                'password': '$2b$12$D2.n.12345678901234567eX.a.u.th.hash.value.CHANGE_THIS' 
-                # HINWEIS: Da ich keinen echten Hash generieren kann ohne Terminal, 
-                # nutzen wir hier einen Trick. Streamlit-Authenticator braucht gehashte Passwörter.
-                # Wir bauen die Config gleich so, dass es funktioniert.
-            }
-        }
-    },
-    'cookie': {
-        'expiry_days': 30,
-        'key': 'random_signature_key',
-        'name': 'ligalook_cookie'
-    },
-    'preauthorized': {'emails': []}
-}
-
-# Workaround: Wir überschreiben das Passwort oben mit einem echten Hash für "123"
-# Hash für "123" = $2b$12$1.n.12345678901234567eX.a.u.th.hash.value (Dummy)
-# Wir nutzen für diesen Test den "Plain Text", den Authenticator aber hashen soll. 
-# Aber korrekterweise nutzen wir Hasher.
-
-# --- VEREINFACHTE VARIANTE FÜR DEN START ---
-# Wir nutzen eine simple Konfiguration, damit du sofort starten kannst.
-# Passwort für alle: 'abc'
-
-authenticator = stauth.Authenticate(
-    auth_data['credentials'],
-    auth_data['cookie']['name'],
-    auth_data['cookie']['key'],
-    auth_data['cookie']['expiry_days']
-)
-
-# ACHTUNG: Da das Hashen komplex ist, tricksen wir für dein MVP kurz:
-# Wir loggen uns manuell ein oder nutzen die UI.
-# Damit der Code unten funktioniert, musst du erst das Paket installieren.
-# Da ich dir keinen Hash generieren kann (das ändert sich jedes Mal),
-# bauen wir einen manuellen Login-Check, der einfacher ist für heute.
-
-# --- SICHERER LOGIN (Secrets) ---
+# --- 2. SICHERER LOGIN (NUR SECRETS) ---
 def check_password():
     """Prüft Username/Passwort gegen die sicheren Streamlit Secrets."""
 
@@ -71,12 +21,14 @@ def check_password():
         entered_pw = st.session_state.get("password", "")
 
         # Wir holen die User-Liste sicher aus den Secrets
-        # Struktur in Secrets: [passwords] user = "pw"
-        if entered_user in st.secrets["passwords"] and entered_pw == st.secrets["passwords"][entered_user]:
-            st.session_state["password_correct"] = True
-            del st.session_state["password"]  # Passwort sofort löschen
+        if "passwords" in st.secrets:
+            if entered_user in st.secrets["passwords"] and entered_pw == st.secrets["passwords"][entered_user]:
+                st.session_state["password_correct"] = True
+                del st.session_state["password"]  # Passwort sofort löschen
+            else:
+                st.session_state["password_correct"] = False
         else:
-            st.session_state["password_correct"] = False
+            st.error("Fehler: Keine Passwörter in den Secrets gefunden!")
 
     if "password_correct" not in st.session_state:
         # Erster Aufruf
@@ -90,14 +42,15 @@ def check_password():
         st.markdown("## 🔒 LigaLook Login")
         st.text_input("Username", key="username")
         st.text_input("Password", type="password", on_change=password_entered, key="password")
-        st.error("😕 Login fehlgeschlagen")
+        st.error("😕 Login fehlgeschlagen oder User unbekannt")
         return False
     
     else:
         # Alles korrekt
         return True
-        
-    # --- AB HIER BEGINNT DEINE EIGENTLICHE APP ---
+
+# --- 3. DIE EIGENTLICHE APP ---
+if check_password():
     
     # Logout Button in der Sidebar
     if st.sidebar.button("Log out"):
@@ -114,16 +67,14 @@ def check_password():
             except IOError:
                 return ImageFont.load_default()
 
-    # --- HEADER & STYLE ---
+    # HEADER
     st.title("⚽ LigaLook")
     st.markdown("### Dein automatischer Matchday-Designer")
     st.markdown("---")
 
-    # --- SIDEBAR ---
+    # SIDEBAR
     st.sidebar.header("🎨 Design & Layout")
-    
-    # Branding für User
-    st.sidebar.info(f"Eingeloggt als: **Admin**")
+    st.sidebar.success(f"Eingeloggt.") # Kleiner Hinweis
 
     uploaded_bg = st.sidebar.file_uploader("1. Hintergrundbild (JPG/PNG)", type=['jpg', 'jpeg', 'png'])
 
@@ -146,7 +97,7 @@ def check_password():
 
     use_watermark = st.sidebar.checkbox("Wasserzeichen anzeigen", value=True)
 
-    # --- MAIN AREA ---
+    # MAIN AREA
     st.subheader("📋 Daten aus Excel")
     uploaded_excel = st.file_uploader("2. Excel-Liste hochladen (.xlsx)", type=['xlsx'])
 
@@ -203,4 +154,4 @@ def check_password():
             st.error(f"Fehler: {e}")
 
     elif not uploaded_excel:
-        st.info("Bitte einloggen und Excel hochladen.")
+        st.info("Bitte Excel hochladen.")
