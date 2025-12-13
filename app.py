@@ -61,55 +61,42 @@ authenticator = stauth.Authenticate(
 # Da ich dir keinen Hash generieren kann (das ändert sich jedes Mal),
 # bauen wir einen manuellen Login-Check, der einfacher ist für heute.
 
-# --- ALTERNATIVE: EINFACHER LOGIN OHNE BIBLIOTHEK (FÜR HEUTE) ---
-# (Die Library oben ist gut, aber zickt oft bei Hashes. Wir machen es 'SaaS-Like' aber simpler)
-
-# --- USER KONFIGURATION (Deine VIP-Liste) ---
-# Format: "Benutzername": "Passwort"
-# NEUEN KUNDEN HINTERLEGEN
-USERS = {
-    "admin": "123",
-    "markus": "torwart1",
-    "julia": "design2025",
-    "gast": "demo"
-}
-
+# --- SICHERER LOGIN (Secrets) ---
 def check_password():
-    """Prüft, ob der User in der Liste USERS steht und das richtige Passwort hat."""
+    """Prüft Username/Passwort gegen die sicheren Streamlit Secrets."""
 
     def password_entered():
         """Wird ausgeführt, wenn User Enter drückt."""
         entered_user = st.session_state.get("username", "")
         entered_pw = st.session_state.get("password", "")
 
-        # Prüfung: Ist der User in der Liste UND stimmt das Passwort?
-        if entered_user in USERS and USERS[entered_user] == entered_pw:
+        # Wir holen die User-Liste sicher aus den Secrets
+        # Struktur in Secrets: [passwords] user = "pw"
+        if entered_user in st.secrets["passwords"] and entered_pw == st.secrets["passwords"][entered_user]:
             st.session_state["password_correct"] = True
-            del st.session_state["password"]  # Passwort sofort aus Speicher löschen
+            del st.session_state["password"]  # Passwort sofort löschen
         else:
             st.session_state["password_correct"] = False
 
-    # Logik für die Anzeige der Login-Maske
     if "password_correct" not in st.session_state:
-        # Erster Aufruf: Zeige Inputs
+        # Erster Aufruf
         st.markdown("## 🔒 LigaLook Login")
         st.text_input("Username", key="username")
         st.text_input("Password", type="password", on_change=password_entered, key="password")
         return False
     
     elif not st.session_state["password_correct"]:
-        # Passwort war falsch
+        # Falsche Eingabe
         st.markdown("## 🔒 LigaLook Login")
         st.text_input("Username", key="username")
         st.text_input("Password", type="password", on_change=password_entered, key="password")
-        st.error("😕 Unbekannter User oder falsches Passwort")
+        st.error("😕 Login fehlgeschlagen")
         return False
     
     else:
-        # Alles korrekt -> App darf starten
+        # Alles korrekt
         return True
         
-if check_password():
     # --- AB HIER BEGINNT DEINE EIGENTLICHE APP ---
     
     # Logout Button in der Sidebar
