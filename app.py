@@ -64,34 +64,51 @@ authenticator = stauth.Authenticate(
 # --- ALTERNATIVE: EINFACHER LOGIN OHNE BIBLIOTHEK (FÜR HEUTE) ---
 # (Die Library oben ist gut, aber zickt oft bei Hashes. Wir machen es 'SaaS-Like' aber simpler)
 
+# --- USER KONFIGURATION (Deine VIP-Liste) ---
+# Format: "Benutzername": "Passwort"
+# NEUEN KUNDEN HINTERLEGEN
+USERS = {
+    "admin": "123",
+    "markus": "torwart1",
+    "julia": "design2025",
+    "gast": "demo"
+}
+
 def check_password():
-    """Returns `True` if the user had a correct password."""
+    """Prüft, ob der User in der Liste USERS steht und das richtige Passwort hat."""
 
     def password_entered():
-        """Checks whether a password entered by the user is correct."""
-        if st.session_state["username"] == "admin" and st.session_state["password"] == "123":
+        """Wird ausgeführt, wenn User Enter drückt."""
+        entered_user = st.session_state.get("username", "")
+        entered_pw = st.session_state.get("password", "")
+
+        # Prüfung: Ist der User in der Liste UND stimmt das Passwort?
+        if entered_user in USERS and USERS[entered_user] == entered_pw:
             st.session_state["password_correct"] = True
-            del st.session_state["password"]  # Passwort nicht speichern
+            del st.session_state["password"]  # Passwort sofort aus Speicher löschen
         else:
             st.session_state["password_correct"] = False
 
+    # Logik für die Anzeige der Login-Maske
     if "password_correct" not in st.session_state:
         # Erster Aufruf: Zeige Inputs
         st.markdown("## 🔒 LigaLook Login")
         st.text_input("Username", key="username")
         st.text_input("Password", type="password", on_change=password_entered, key="password")
         return False
+    
     elif not st.session_state["password_correct"]:
-        # Passwort falsch
+        # Passwort war falsch
         st.markdown("## 🔒 LigaLook Login")
         st.text_input("Username", key="username")
         st.text_input("Password", type="password", on_change=password_entered, key="password")
-        st.error("😕 User oder Passwort falsch")
+        st.error("😕 Unbekannter User oder falsches Passwort")
         return False
+    
     else:
-        # Passwort korrekt
+        # Alles korrekt -> App darf starten
         return True
-
+        
 if check_password():
     # --- AB HIER BEGINNT DEINE EIGENTLICHE APP ---
     
