@@ -69,3 +69,27 @@ def check_credentials(sheet_name, email, password):
     if email in users and str(users[email]) == hashed_pw:
         return True
     return False
+
+def update_password(sheet_name, email, new_password):
+    """Sucht den User und überschreibt das Passwort."""
+    try:
+        sheet = get_db_connection(sheet_name)
+        # Wir laden alle Daten
+        records = sheet.get_all_records()
+        
+        # Wir suchen die Zeile (Indizes bei Google Sheets starten bei 2 wegen Header)
+        row_index = None
+        for i, row in enumerate(records):
+            if row['email'] == email:
+                row_index = i + 2  # +2 weil gspread 1-basiert ist + Header
+                break
+        
+        if row_index:
+            hashed_pw = hashlib.sha256(new_password.encode()).hexdigest()
+            # Nur die Spalte 2 (Passwort) in dieser Zeile updaten
+            sheet.update_cell(row_index, 2, hashed_pw)
+            return True
+        return False
+    except Exception as e:
+        st.error(f"Fehler beim Passwort-Reset: {e}")
+        return False
