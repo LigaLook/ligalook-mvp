@@ -1,0 +1,6 @@
+[theme]
+primaryColor = "#2563EB"       # Dein "LigaLook Blau" (für Buttons & Fokus)
+backgroundColor = "#FFFFFF"    # Weißer Hintergrund
+secondaryBackgroundColor = "#F1F5F9" # Ganz helles Grau für die Sidebar
+textColor = "#0F172A"          # Dunkles Blau-Grau für Text (statt hartem Schwarz)
+font = "sans serif"            # Moderne Schriftart
