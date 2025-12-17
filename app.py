@@ -84,3 +84,6 @@ if st.session_state["logged_in"]:
     main_app()
 else:
     login_system()
+
+st.markdown("---")
+st.markdown("[Impressum](https://deine-webseite.com/impressum) | [Datenschutz](https://deine-webseite.com/datenschutz)", unsafe_allow_html=True)
