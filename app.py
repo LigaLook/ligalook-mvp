@@ -29,26 +29,30 @@ def open_legal_modal(category):
 # --- LOGIN SCREEN ---
 def login_system():
     st.markdown("## ⚽ LigaLook Login")
-    tab1, tab2 = st.tabs(["Einloggen", "Registrieren"])
+    tab1, tab2, tab3 = st.tabs(["🔒 Einloggen", "📝 Registrieren", "❓ Passwort vergessen"]) # <--- Neuer Tab
 
+    # --- TAB 1: LOGIN ---
     with tab1:
         email = st.text_input("E-Mail", key="login_email")
         pw = st.text_input("Passwort", type="password", key="login_pw")
-        if st.button("Starten", type="primary"):
+        if st.button("Anmelden", type="primary"):
             if utils.check_credentials(SHEET_NAME, email, pw):
                 st.session_state["logged_in"] = True
                 st.session_state["username"] = email
                 st.rerun()
             else:
-                st.error("Falsche Daten.")
+                st.error("E-Mail oder Passwort falsch.")
 
+    # --- TAB 2: REGISTRIEREN ---
     with tab2:
+        # ... (Dein bisheriger Registrierungs-Code bleibt hier unverändert stehen) ...
+        # (Um Platz zu sparen, kopiere hier einfach deinen alten Tab 2 Code rein)
         if "reg_step" not in st.session_state:
             st.session_state["reg_step"] = 1
-        
+            
         if st.session_state["reg_step"] == 1:
             r_email = st.text_input("E-Mail für Account", key="reg_email")
-            if st.button("Code senden"):
+            if st.button("Code anfordern", key="reg_btn"):
                 users = utils.load_users(SHEET_NAME)
                 if r_email in users:
                     st.warning("Account existiert schon.")
@@ -66,7 +70,7 @@ def login_system():
             code_in = st.text_input("Code eingeben", key="code_in")
             pw_in = st.text_input("Passwort wählen", type="password", key="reg_pw")
             
-            if st.button("Fertigstellen"):
+            if st.button("Account erstellen"):
                 if code_in == st.session_state["code"]:
                     utils.save_user(SHEET_NAME, st.session_state["target"], pw_in)
                     st.success("Erstellt! Bitte einloggen.")
@@ -74,6 +78,48 @@ def login_system():
                     st.rerun()
                 else:
                     st.error("Falscher Code")
+
+    # --- TAB 3: PASSWORT VERGESSEN (NEU!) ---
+    with tab3:
+        st.write("Kein Problem. Wir senden dir einen Code, um es zurückzusetzen.")
+        
+        if "reset_step" not in st.session_state:
+            st.session_state["reset_step"] = 1
+            
+        # Schritt 1: Email prüfen
+        if st.session_state["reset_step"] == 1:
+            reset_email = st.text_input("Deine E-Mail", key="reset_email")
+            if st.button("Code senden", key="reset_btn_send"):
+                users = utils.load_users(SHEET_NAME)
+                if reset_email not in users:
+                    st.error("Diese E-Mail kennen wir nicht.")
+                else:
+                    import random
+                    code = str(random.randint(1000, 9999))
+                    st.session_state["reset_code"] = code
+                    st.session_state["reset_target"] = reset_email
+                    
+                    if utils.send_verification_email(reset_email, code):
+                        st.session_state["reset_step"] = 2
+                        st.rerun()
+        
+        # Schritt 2: Code & Neues PW
+        elif st.session_state["reset_step"] == 2:
+            st.info(f"Code an {st.session_state['reset_target']} gesendet.")
+            
+            r_code = st.text_input("Code aus E-Mail", key="reset_code_in")
+            r_new_pw = st.text_input("Neues Passwort", type="password", key="reset_new_pw")
+            
+            if st.button("Passwort ändern"):
+                if r_code == st.session_state["reset_code"]:
+                    if utils.update_password(SHEET_NAME, st.session_state["reset_target"], r_new_pw):
+                        st.success("Passwort geändert! Du kannst dich jetzt einloggen.")
+                        st.session_state["reset_step"] = 1
+                        st.balloons()
+                    else:
+                        st.error("Fehler beim Speichern.")
+                else:
+                    st.error("Falscher Code.")
 
     # --- FOOTER MIT BUTTONS (statt Links) ---
     st.markdown("---")
