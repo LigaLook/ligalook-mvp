@@ -26,44 +26,49 @@ def open_legal_modal(category):
     elif category == "datenschutz":
         st.markdown(legal.DATENSCHUTZ_TEXT)
 
-# --- LOGIN SCREEN ---
+# --- LOGIN SCREEN MIT SPINNERN ---
 def login_system():
     st.markdown("## ⚽ LigaLook Login")
-    tab1, tab2, tab3 = st.tabs(["🔒 Einloggen", "📝 Registrieren", "❓ Passwort vergessen"]) # <--- Neuer Tab
+    tab1, tab2, tab3 = st.tabs(["🔒 Einloggen", "📝 Registrieren", "❓ Passwort vergessen"])
 
     # --- TAB 1: LOGIN ---
     with tab1:
         email = st.text_input("E-Mail", key="login_email")
         pw = st.text_input("Passwort", type="password", key="login_pw")
+        
         if st.button("Anmelden", type="primary"):
-            if utils.check_credentials(SHEET_NAME, email, pw):
-                st.session_state["logged_in"] = True
-                st.session_state["username"] = email
-                st.rerun()
-            else:
-                st.error("E-Mail oder Passwort falsch.")
+            # SPINNER 1: Beim Einloggen
+            with st.spinner("Prüfe Zugangsdaten... 🔐"):
+                if utils.check_credentials(SHEET_NAME, email, pw):
+                    st.session_state["logged_in"] = True
+                    st.session_state["username"] = email
+                    st.rerun()
+                else:
+                    st.error("E-Mail oder Passwort falsch.")
 
     # --- TAB 2: REGISTRIEREN ---
     with tab2:
-        # ... (Dein bisheriger Registrierungs-Code bleibt hier unverändert stehen) ...
-        # (Um Platz zu sparen, kopiere hier einfach deinen alten Tab 2 Code rein)
         if "reg_step" not in st.session_state:
             st.session_state["reg_step"] = 1
             
         if st.session_state["reg_step"] == 1:
             r_email = st.text_input("E-Mail für Account", key="reg_email")
+            
             if st.button("Code anfordern", key="reg_btn"):
-                users = utils.load_users(SHEET_NAME)
-                if r_email in users:
-                    st.warning("Account existiert schon.")
-                else:
-                    import random
-                    code = str(random.randint(1000, 9999))
-                    st.session_state["code"] = code
-                    st.session_state["target"] = r_email
-                    if utils.send_verification_email(r_email, code):
-                        st.session_state["reg_step"] = 2
-                        st.rerun()
+                # SPINNER 2: Beim Prüfen & E-Mail Senden
+                with st.spinner("Verbinde mit Server & sende E-Mail... 📧"):
+                    users = utils.load_users(SHEET_NAME)
+                    if r_email in users:
+                        st.warning("Account existiert schon.")
+                    else:
+                        import random
+                        code = str(random.randint(1000, 9999))
+                        st.session_state["code"] = code
+                        st.session_state["target"] = r_email
+                        
+                        if utils.send_verification_email(r_email, code):
+                            st.session_state["reg_step"] = 2
+                            st.rerun()
         
         elif st.session_state["reg_step"] == 2:
             st.info(f"Code gesendet an {st.session_state['target']}")
@@ -71,55 +76,58 @@ def login_system():
             pw_in = st.text_input("Passwort wählen", type="password", key="reg_pw")
             
             if st.button("Account erstellen"):
-                if code_in == st.session_state["code"]:
-                    utils.save_user(SHEET_NAME, st.session_state["target"], pw_in)
-                    st.success("Erstellt! Bitte einloggen.")
-                    st.session_state["reg_step"] = 1
-                    st.rerun()
-                else:
-                    st.error("Falscher Code")
+                # SPINNER 3: Beim Speichern in Google Sheets
+                with st.spinner("Erstelle deinen Account... ✨"):
+                    if code_in == st.session_state["code"]:
+                        utils.save_user(SHEET_NAME, st.session_state["target"], pw_in)
+                        st.success("Erstellt! Bitte einloggen.")
+                        st.session_state["reg_step"] = 1
+                        st.rerun()
+                    else:
+                        st.error("Falscher Code")
 
-    # --- TAB 3: PASSWORT VERGESSEN (NEU!) ---
+    # --- TAB 3: PASSWORT VERGESSEN ---
     with tab3:
-        st.write("Kein Problem. Wir senden dir einen Code, um es zurückzusetzen.")
+        st.write("Kein Problem. Wir senden dir einen Code.")
         
         if "reset_step" not in st.session_state:
             st.session_state["reset_step"] = 1
             
-        # Schritt 1: Email prüfen
         if st.session_state["reset_step"] == 1:
             reset_email = st.text_input("Deine E-Mail", key="reset_email")
             if st.button("Code senden", key="reset_btn_send"):
-                users = utils.load_users(SHEET_NAME)
-                if reset_email not in users:
-                    st.error("Diese E-Mail kennen wir nicht.")
-                else:
-                    import random
-                    code = str(random.randint(1000, 9999))
-                    st.session_state["reset_code"] = code
-                    st.session_state["reset_target"] = reset_email
-                    
-                    if utils.send_verification_email(reset_email, code):
-                        st.session_state["reset_step"] = 2
-                        st.rerun()
+                # SPINNER 4: Passwort-Mail senden
+                with st.spinner("Suche User & sende Mail... 📨"):
+                    users = utils.load_users(SHEET_NAME)
+                    if reset_email not in users:
+                        st.error("Diese E-Mail kennen wir nicht.")
+                    else:
+                        import random
+                        code = str(random.randint(1000, 9999))
+                        st.session_state["reset_code"] = code
+                        st.session_state["reset_target"] = reset_email
+                        
+                        if utils.send_verification_email(reset_email, code):
+                            st.session_state["reset_step"] = 2
+                            st.rerun()
         
-        # Schritt 2: Code & Neues PW
         elif st.session_state["reset_step"] == 2:
             st.info(f"Code an {st.session_state['reset_target']} gesendet.")
-            
             r_code = st.text_input("Code aus E-Mail", key="reset_code_in")
             r_new_pw = st.text_input("Neues Passwort", type="password", key="reset_new_pw")
             
             if st.button("Passwort ändern"):
-                if r_code == st.session_state["reset_code"]:
-                    if utils.update_password(SHEET_NAME, st.session_state["reset_target"], r_new_pw):
-                        st.success("Passwort geändert! Du kannst dich jetzt einloggen.")
-                        st.session_state["reset_step"] = 1
-                        st.balloons()
+                # SPINNER 5: Passwort überschreiben
+                with st.spinner("Aktualisiere Datenbank... 💾"):
+                    if r_code == st.session_state["reset_code"]:
+                        if utils.update_password(SHEET_NAME, st.session_state["reset_target"], r_new_pw):
+                            st.success("Passwort geändert! Du kannst dich jetzt einloggen.")
+                            st.session_state["reset_step"] = 1
+                            st.balloons()
+                        else:
+                            st.error("Fehler beim Speichern.")
                     else:
-                        st.error("Fehler beim Speichern.")
-                else:
-                    st.error("Falscher Code.")
+                        st.error("Falscher Code.")
 
     # --- FOOTER MIT BUTTONS (statt Links) ---
     st.markdown("---")
