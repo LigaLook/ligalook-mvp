@@ -7,6 +7,16 @@ import designer_code # <--- WICHTIG: Das ist deine neue Datei!
 st.set_page_config(page_title="LigaLook Designer", page_icon="⚽", layout="wide")
 SHEET_NAME = "LigaLook Users"
 
+# --- OPTIK: STREAMLIT BRANDING AUSBLENDEN ---
+hide_streamlit_style = """
+            <style>
+            #MainMenu {visibility: hidden;}
+            footer {visibility: hidden;}
+            header {visibility: hidden;}
+            </style>
+            """
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+
 # --- LOGIN SCREEN ---
 def login_system():
     st.markdown("## ⚽ LigaLook Login")
