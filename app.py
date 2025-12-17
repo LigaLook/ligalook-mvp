@@ -1,11 +1,14 @@
 import streamlit as st
 import streamlit.components.v1 as components
 import utils 
-import designer_code # <--- WICHTIG: Das ist deine neue Datei!
+import designer_code 
+import legal  # <--- NEU: Deine Texte importieren
 
 # --- KONFIGURATION ---
 st.set_page_config(page_title="LigaLook Designer", page_icon="⚽", layout="wide")
-# --- OPTIK: STREAMLIT BRANDING AUSBLENDEN ---
+SHEET_NAME = "LigaLook Users"
+
+# --- OPTIK ---
 hide_streamlit_style = """
             <style>
             #MainMenu {visibility: hidden;}
@@ -14,7 +17,14 @@ hide_streamlit_style = """
             </style>
             """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
-SHEET_NAME = "LigaLook Users"
+
+# --- NEU: DIE POP-UP FUNKTIONEN ---
+@st.dialog("Rechtliche Hinweise")
+def open_legal_modal(category):
+    if category == "impressum":
+        st.markdown(legal.IMPRESSUM_TEXT)
+    elif category == "datenschutz":
+        st.markdown(legal.DATENSCHUTZ_TEXT)
 
 # --- LOGIN SCREEN ---
 def login_system():
@@ -65,6 +75,16 @@ def login_system():
                 else:
                     st.error("Falscher Code")
 
+    # --- FOOTER MIT BUTTONS (statt Links) ---
+    st.markdown("---")
+    col1, col2, col3 = st.columns([1, 1, 4]) # Kleine Spalten für die Buttons
+    with col1:
+        if st.button("Impressum"):
+            open_legal_modal("impressum")
+    with col2:
+        if st.button("Datenschutz"):
+            open_legal_modal("datenschutz")
+
 # --- MAIN APP ---
 def main_app():
     with st.sidebar:
@@ -72,8 +92,15 @@ def main_app():
         if st.button("Logout"):
             st.session_state["logged_in"] = False
             st.rerun()
+        
+        st.divider()
+        # Buttons in der Sidebar
+        if st.button("Impressum", key="sidebar_imp"):
+            open_legal_modal("impressum")
+        if st.button("Datenschutz", key="sidebar_dat"):
+            open_legal_modal("datenschutz")
     
-    # Hier laden wir den Code aus der Variable
+    # Designer laden
     components.html(designer_code.HTML_CONTENT, height=1100, scrolling=False)
 
 # --- STEUERUNG ---
@@ -84,6 +111,3 @@ if st.session_state["logged_in"]:
     main_app()
 else:
     login_system()
-
-st.markdown("---")
-st.markdown("[Impressum](https://deine-webseite.com/impressum) | [Datenschutz](https://deine-webseite.com/datenschutz)", unsafe_allow_html=True)
